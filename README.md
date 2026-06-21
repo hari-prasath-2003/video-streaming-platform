@@ -8,14 +8,14 @@ StreamForge is a hands-on engineering project focused on designing, building, an
 
 ## Objectives
 
-* Build a scalable video streaming platform
-* Design and implement backend services
-* Explore distributed system patterns
-* Implement event-driven workflows
-* Automate deployments using CI/CD
-* Deploy applications using Kubernetes
-* Practice observability and monitoring
-* Apply production-oriented engineering practices
+- Build a scalable video streaming platform
+- Design and implement backend services
+- Explore distributed system patterns
+- Implement event-driven workflows
+- Automate deployments using CI/CD
+- Deploy applications using Kubernetes
+- Practice observability and monitoring
+- Apply production-oriented engineering practices
 
 ---
 
@@ -57,44 +57,44 @@ StreamForge is a hands-on engineering project focused on designing, building, an
 
 ### Frontend
 
-* Next.js
-* TypeScript
-* Tailwind CSS
-* ShadCN UI
+- Next.js
+- TypeScript
+- Tailwind CSS
+- ShadCN UI
 
 ### Backend
 
-* Node.js
-* Express.js / Fastify
-* TypeScript
+- Node.js
+- Express.js / Fastify
+- TypeScript
 
 ### Data Layer
 
-* PostgreSQL
-* Redis
+- PostgreSQL
+- Redis
 
 ### Messaging & Background Processing
 
-* BullMQ
-* Kafka (planned)
+- BullMQ
+- Kafka (planned)
 
 ### Storage
 
-* MinIO
-* Amazon S3 (planned)
+- MinIO
+- Amazon S3 (planned)
 
 ### DevOps & Infrastructure
 
-* Docker
-* Kubernetes
-* Jenkins
-* GitHub Webhooks
+- Docker
+- Kubernetes
+- Jenkins
+- GitHub Webhooks
 
 ### Monitoring & Observability
 
-* Prometheus
-* Grafana
-* Loki
+- Prometheus
+- Grafana
+- Loki
 
 ---
 
@@ -112,12 +112,8 @@ streamforge/
 │   └── transcoder-worker/
 │
 ├── infrastructure/
-│   ├── kubernetes/
-│   ├── docker/
-│   └── terraform/
+│   └── kubernetes/
 │
-├── ci-cd/
-│   └── jenkins/
 │
 ├── shared/
 │   ├── types/
@@ -132,32 +128,32 @@ streamforge/
 
 ### Video Management
 
-* Video uploads
-* Video metadata management
-* Visibility controls
-* Streaming support
+- Video uploads
+- Video metadata management
+- Visibility controls
+- Streaming support
 
 ### Processing Pipeline
 
-* Asynchronous upload processing
-* Queue-driven workflows
-* Video transcoding
-* Thumbnail generation
+- Asynchronous upload processing
+- Queue-driven workflows
+- Video transcoding
+- Thumbnail generation
 
 ### User Features
 
-* Authentication and authorization
-* User profiles
-* Upload history
+- Authentication and authorization
+- User profiles
+- Upload history
 
 ### Platform Engineering
 
-* Containerized services
-* Automated deployments
-* Kubernetes orchestration
-* Centralized logging
-* Metrics collection
-* Horizontal scaling
+- Containerized services
+- Automated deployments
+- Kubernetes orchestration
+- Centralized logging
+- Metrics collection
+- Horizontal scaling
 
 ---
 
@@ -194,17 +190,17 @@ GitHub Webhook
 
 This project serves as a practical environment for learning and demonstrating:
 
-* Backend Development
-* API Design
-* Distributed Systems
-* Event-Driven Architecture
-* Docker
-* Kubernetes
-* Jenkins
-* CI/CD Automation
-* System Design
-* Observability
-* Scalability Patterns
+- Backend Development
+- API Design
+- Distributed Systems
+- Event-Driven Architecture
+- Docker
+- Kubernetes
+- Jenkins
+- CI/CD Automation
+- System Design
+- Observability
+- Scalability Patterns
 
 ---
 
@@ -212,30 +208,30 @@ This project serves as a practical environment for learning and demonstrating:
 
 ### Phase 1
 
-* Frontend prototype
-* Video service foundation
-* PostgreSQL integration
-* Docker setup
+- Frontend prototype
+- Video service foundation
+- PostgreSQL integration
+- Docker setup
 
 ### Phase 2
 
-* Video upload workflow
-* Redis integration
-* Queue processing
-* Background workers
+- Video upload workflow
+- Redis integration
+- Queue processing
+- Background workers
 
 ### Phase 3
 
-* CI/CD with Jenkins
-* Kubernetes deployment
-* Monitoring and logging
+- CI/CD with Jenkins
+- Kubernetes deployment
+- Monitoring and logging
 
 ### Phase 4
 
-* Advanced scaling patterns
-* Search capabilities
-* Recommendation engine
-* Live streaming exploration
+- Advanced scaling patterns
+- Search capabilities
+- Recommendation engine
+- Live streaming exploration
 
 ---
 
