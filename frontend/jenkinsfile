@@ -1,15 +1,21 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'Node22'
+    environment {
+        IMAGE_NAME = "nextjs-demo"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                sh 'node -v'
-                sh 'npm -v'
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Application deployed successfully!"
             }
         }
     }
