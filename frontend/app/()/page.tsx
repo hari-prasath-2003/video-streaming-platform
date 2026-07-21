@@ -1,8 +1,10 @@
-import { Navbar } from "@/components/navbar";
-import { Sidebar } from "@/components/sidebar";
+"use client";
+
 import { HeroBanner } from "@/components/hero-banner";
 import { CategoryTabs } from "@/components/category-tabs";
 import { VideoCard } from "@/components/video-card";
+import UseApi from "@/hooks/UseApi";
+import { useEffect } from "react";
 
 const videos = Array.from({ length: 12 }).map((_, i) => ({
   id: i,
@@ -13,6 +15,10 @@ const videos = Array.from({ length: 12 }).map((_, i) => ({
 }));
 
 export default function HomePage() {
+  const { get } = UseApi();
+  useEffect(() => {
+    get("/api/user");
+  }, []);
   return (
     <div>
       <HeroBanner />

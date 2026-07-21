@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum VideoVisibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+model Video {
+  id              String @id @default(uuid()) @db.Uuid
+
+  channelId       String @db.Uuid @map("channel_id")
+
+  title           String @db.VarChar(255)
+
+  description     String?
+
+  thumbnailUrl    String? @map("thumbnail_url")
+
+  videoUrl        String @map("video_url")
+
+  durationSeconds Int @map("duration_seconds")
+
+  visibility      VideoVisibility @default(PUBLIC)
+
+  uploadedAt      DateTime @default(now()) @map("uploaded_at")
+
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  likes           VideoLike[]
+
+  comments        Comment[]
+
+  views           VideoView[]
+
+  @@index([channelId])
+
+  @@index([uploadedAt])
+
+  @@index([visibility])
+
+  @@map("videos")
+}

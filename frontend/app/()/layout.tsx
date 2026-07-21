@@ -6,6 +6,7 @@ import "@fontsource/roboto/700.css";
 import "../globals.css";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
+import ProtectedRoute from "@/components/protected-route";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,14 +29,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="max-h-screen min-h-screen flex flex-col bg-black text-white">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 px-8 py-8 bg-black text-white overflow-y-auto">
-          {children}
-        </main>
+    <ProtectedRoute>
+      <div className="max-h-screen min-h-screen flex flex-col bg-black text-white">
+        <Navbar />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 px-8 py-8 bg-black text-white overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

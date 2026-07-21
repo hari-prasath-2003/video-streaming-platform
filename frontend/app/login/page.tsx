@@ -1,8 +1,27 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import UseAuth from "@/hooks/UseAuth";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { login } = UseAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  async function handleLogin() {
+    try {
+      await login(email, password);
+      const redirect = searchParams.get("redirect");
+      router.replace(redirect || "/");
+    } catch (error) {}
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="grid min-h-screen lg:grid-cols-2">
@@ -40,30 +59,20 @@ export default function LoginPage() {
               <Input
                 placeholder="Email"
                 className="h-12 border-zinc-700 bg-zinc-900"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
 
               <Input
                 type="password"
                 placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="h-12 border-zinc-700 bg-zinc-900"
               />
 
-              <Button className="h-12 w-full">Sign In</Button>
-            </div>
-
-            <div className="my-8 flex items-center gap-4">
-              <div className="h-px flex-1 bg-zinc-800" />
-              <span className="text-sm text-zinc-500">OR CONTINUE WITH</span>
-              <div className="h-px flex-1 bg-zinc-800" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="border-zinc-700 bg-zinc-900">
-                Google
-              </Button>
-
-              <Button variant="outline" className="border-zinc-700 bg-zinc-900">
-                GitHub
+              <Button className="h-12 w-full" onClick={handleLogin}>
+                Sign In
               </Button>
             </div>
 
