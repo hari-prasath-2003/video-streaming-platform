@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model Profile {
+  id          String   @id @default(uuid()) @db.Uuid
+
+  userId      String   @unique @db.Uuid @map("user_id")
+
+  username    String   @unique @db.VarChar(50)
+
+  displayName String   @map("display_name") @db.VarChar(100)
+
+  bio         String?
+
+  avatarUrl   String?  @map("avatar_url")
+
+  bannerUrl   String?  @map("banner_url")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  channel     Channel?
+
+  @@map("profiles")
+}
+
+model Channel {
+  id           String @id @default(uuid()) @db.Uuid
+
+  ownerId      String @unique @db.Uuid @map("owner_id")
+
+  handle       String @unique @db.VarChar(40)
+
+  name         String @db.VarChar(100)
+
+  description  String?
+
+  avatarUrl    String? @map("avatar_url")
+
+  bannerUrl    String? @map("banner_url")
+
+  visibility   ChannelVisibility @default(PUBLIC)
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile      Profile @relation(fields: [ownerId], references: [userId])
+
+  subscribers  Subscription[]
+
+  @@map("channels")
+}
+
+model Subscription {
+  subscriberId String @db.Uuid @map("subscriber_id")
+
+  channelId    String @db.Uuid @map("channel_id")
+
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+
+  channel Channel @relation(fields: [channelId], references: [id])
+
+  @@id([subscriberId, channelId])
+
+  @@index([channelId])
+
+  @@map("subscriptions")
+}

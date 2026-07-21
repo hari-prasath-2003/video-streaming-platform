@@ -1,0 +1,16 @@
+{
+  "name": "@video-streaming/logger",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "pino": "^10.3.1"
+  }
+}
