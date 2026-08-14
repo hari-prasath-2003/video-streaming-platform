@@ -46,11 +46,26 @@ const createServiceProxy = (
   });
 };
 
+// Credential management (change email/password, delete account) lives in
+// auth-service but, unlike login/signup/refresh, requires an authenticated
+// caller — so it is mounted here, after `authenticate`, rather than under
+// the public /api/auth passthrough above.
+// Express has already stripped the "/api/account" mount prefix by the time the
+// proxy reads req.url, so this prepends auth-service's own "/account" mount
+// rather than stripping anything: "/me" -> "/account/me".
+app.use(
+  "/api/account",
+  createServiceProxy(env.AUTH_SERVICE_URL, { "^/": "/account/" }),
+);
+
 app.use("/api/user", createServiceProxy(env.USER_SERVICE_URL));
 app.use(
   "/api/video",
   createServiceProxy(env.VIDEO_SERVICE_URL, { "^/api/video": "" }),
 );
+// search-service owns no data — it fans the query out to the two services
+// above and merges the answers, so it sits behind the same identity headers.
+app.use("/api/search", createServiceProxy(env.SEARCH_SERVICE_URL));
 
 app.use(
   (error: CustomError, req: Request, res: Response, next: NextFunction) => {

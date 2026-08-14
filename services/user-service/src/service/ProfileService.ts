@@ -1,4 +1,8 @@
 import profileRepository from "../repository/ProfileRepository.js";
+import type {
+  CreateProfileInput,
+  UpdateProfileInput,
+} from "../validation/index.js";
 
 import { ConflictError, NotFoundError } from "@video-streaming/common";
 
@@ -6,16 +10,7 @@ class ProfileService {
   /**
    * Create profile for authenticated user
    */
-  async createProfile(
-    userId: string,
-    data: {
-      username: string;
-      displayName: string;
-      bio?: string;
-      avatarUrl?: string;
-      bannerUrl?: string;
-    },
-  ) {
+  async createProfile(userId: string, data: CreateProfileInput) {
     const existingProfile = await profileRepository.findByUserId(userId);
 
     if (existingProfile) {
@@ -65,16 +60,7 @@ class ProfileService {
   /**
    * Update authenticated user's profile
    */
-  async updateProfile(
-    userId: string,
-    data: {
-      username?: string;
-      displayName?: string;
-      bio?: string | null;
-      avatarUrl?: string | null;
-      bannerUrl?: string | null;
-    },
-  ) {
+  async updateProfile(userId: string, data: UpdateProfileInput) {
     const profile = await profileRepository.findByUserId(userId);
 
     if (!profile) {

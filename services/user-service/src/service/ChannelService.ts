@@ -1,5 +1,9 @@
 import channelRepository from "../repository/ChannelRepository.js";
 import profileRepository from "../repository/ProfileRepository.js";
+import type {
+  CreateChannelInput,
+  UpdateChannelInput,
+} from "../validation/index.js";
 
 import { ConflictError, NotFoundError } from "@video-streaming/common";
 
@@ -7,17 +11,7 @@ class ChannelService {
   /**
    * Create channel
    */
-  async createChannel(
-    userId: string,
-    data: {
-      handle: string;
-      name: string;
-      description?: string;
-      avatarUrl?: string;
-      bannerUrl?: string;
-      visibility?: "PUBLIC" | "PRIVATE";
-    },
-  ) {
+  async createChannel(userId: string, data: CreateChannelInput) {
     const profile = await profileRepository.findByUserId(userId);
 
     if (!profile) {
@@ -69,19 +63,31 @@ class ChannelService {
   }
 
   /**
+   * Batch lookup used to attach channel identity to video-service records.
+   * Missing ids are simply absent from the result.
+   */
+  async getChannelsByOwnerIds(ownerIds: string[]) {
+    const unique = [...new Set(ownerIds)].slice(0, 100);
+
+    if (unique.length === 0) {
+      return [];
+    }
+
+    const channels = await channelRepository.findManyByOwnerIds(unique);
+
+    return channels.map((channel) => ({
+      id: channel.id,
+      ownerId: channel.ownerId,
+      handle: channel.handle,
+      name: channel.name,
+      avatarUrl: channel.avatarUrl,
+    }));
+  }
+
+  /**
    * Update channel
    */
-  async updateChannel(
-    userId: string,
-    data: {
-      handle?: string;
-      name?: string;
-      description?: string | null;
-      avatarUrl?: string | null;
-      bannerUrl?: string | null;
-      visibility?: "PUBLIC" | "PRIVATE";
-    },
-  ) {
+  async updateChannel(userId: string, data: UpdateChannelInput) {
     const channel = await channelRepository.findByOwnerId(userId);
 
     if (!channel) {

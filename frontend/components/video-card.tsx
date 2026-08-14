@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 
 interface VideoCardProps {
@@ -6,6 +6,8 @@ interface VideoCardProps {
   channel: string;
   views: string;
   thumbnail: string;
+  /** Resolved channel avatar; falls back to initials when absent. */
+  channelAvatar?: string | null;
 }
 
 export function VideoCard({
@@ -13,6 +15,7 @@ export function VideoCard({
   channel,
   views,
   thumbnail,
+  channelAvatar,
 }: VideoCardProps) {
   return (
     <Card className="group w-full overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/40 transition-all hover:border-zinc-600 hover:shadow-lg hover:shadow-purple-500/10 py-0">
@@ -28,6 +31,8 @@ export function VideoCard({
       {/* CONTENT */}
       <div className="flex gap-3 p-4">
         <Avatar className="h-10 w-10 shrink-0">
+          {channelAvatar && <AvatarImage src={channelAvatar} alt={channel} />}
+
           <AvatarFallback className="bg-zinc-800 text-xs text-white">
             {channel.slice(0, 2).toUpperCase()}
           </AvatarFallback>

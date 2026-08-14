@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import UseAuth from "@/hooks/UseAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+function SignupView() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -94,5 +94,15 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  // useSearchParams (for the ?redirect= target) opts this route out of
+  // prerendering unless it sits under a Suspense boundary.
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-black" />}>
+      <SignupView />
+    </Suspense>
   );
 }

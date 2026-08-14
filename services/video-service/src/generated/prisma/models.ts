@@ -9,5 +9,6 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Video.js'
-export type * from './models/VideoLike.js'
+export type * from './models/Comment.js'
+export type * from './models/VideoReaction.js'
 export type * from './commonInputTypes.js'

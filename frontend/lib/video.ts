@@ -8,6 +8,10 @@ export interface Video {
   durationSeconds: number;
   viewCount: number;
   likeCount: number;
+  dislikeCount: number;
+  commentCount: number;
+  /** This viewer's own reaction, or null if they haven't reacted. */
+  reaction: "LIKE" | "DISLIKE" | null;
   visibility: "PUBLIC" | "PRIVATE" | "UNLISTED";
   uploadedAt: string;
   liked?: boolean;

@@ -5,6 +5,7 @@ import logger from "@video-streaming/logger";
 const envSchema = z.object({
   SERVER_PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
+  UPLOAD_DIR: z.string().default("uploads"),
 });
 
 const result = envSchema.safeParse(process.env);

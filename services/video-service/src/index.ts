@@ -9,6 +9,7 @@ import { AuthError, CustomError } from "@video-streaming/common";
 import { env } from "./config/env.js";
 import { uploadRoot } from "./utils/Storage.js";
 import videoRoutes from "./routes/video.js";
+import commentRoutes from "./routes/comment.js";
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.use((req, res, next) => {
 // mediaUrl() in routes/video.ts still returns gateway-facing "/api/video/media/..."
 // paths since the frontend talks to the gateway, not this service, directly.
 app.use("/media", express.static(uploadRoot));
+// Mounted before videoRoutes so "/comments/:id" is not swallowed by "/:id".
+app.use("/comments", commentRoutes);
 app.use("/", videoRoutes);
 
 app.use(

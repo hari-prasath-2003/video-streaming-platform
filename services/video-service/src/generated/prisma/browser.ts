@@ -23,7 +23,14 @@ export * from './enums.js';
  */
 export type Video = Prisma.VideoModel
 /**
- * Model VideoLike
+ * Model Comment
  * 
  */
-export type VideoLike = Prisma.VideoLikeModel
+export type Comment = Prisma.CommentModel
+/**
+ * Model VideoReaction
+ * One row per user per video. `type` makes like and dislike mutually
+ * exclusive by construction — switching sides updates the row rather than
+ * creating a second one.
+ */
+export type VideoReaction = Prisma.VideoReactionModel

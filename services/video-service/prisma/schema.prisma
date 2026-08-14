@@ -18,6 +18,11 @@ enum VideoVisibility {
   UNLISTED
 }
 
+enum ReactionType {
+  LIKE
+  DISLIKE
+}
+
 model Video {
   id              String @id @default(uuid()) @db.Uuid
 
@@ -43,7 +48,9 @@ model Video {
 
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  likes           VideoLike[]
+  reactions       VideoReaction[]
+
+  comments        Comment[]
 
   @@index([channelId])
 
@@ -54,18 +61,60 @@ model Video {
   @@map("videos")
 }
 
-model VideoLike {
-  videoId String   @db.Uuid @map("video_id")
+model Comment {
+  id        String @id @default(uuid()) @db.Uuid
 
-  userId  String   @db.Uuid @map("user_id")
+  videoId   String @db.Uuid @map("video_id")
 
-  likedAt DateTime @default(now()) @map("liked_at")
+  // Same MVP simplification as Video.channelId: the commenter's userId from
+  // the JWT, with no cross-service FK to user-service's Profile table.
+  authorId  String @db.Uuid @map("author_id")
 
-  video   Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  // Set for replies, null for top-level comments. One level deep only.
+  parentId  String? @db.Uuid @map("parent_id")
+
+  text      String @db.VarChar(2000)
+
+  edited    Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  video     Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([videoId, createdAt])
+
+  @@index([parentId])
+
+  @@index([authorId])
+
+  @@map("comments")
+}
+
+/// One row per user per video. `type` makes like and dislike mutually
+/// exclusive by construction — switching sides updates the row rather than
+/// creating a second one.
+model VideoReaction {
+  videoId   String   @db.Uuid @map("video_id")
+
+  userId    String   @db.Uuid @map("user_id")
+
+  type      ReactionType @default(LIKE)
+
+  reactedAt DateTime @default(now()) @map("reacted_at")
+
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@id([videoId, userId])
 
   @@index([userId])
 
-  @@map("video_likes")
+  @@index([videoId, type])
+
+  @@map("video_reactions")
 }

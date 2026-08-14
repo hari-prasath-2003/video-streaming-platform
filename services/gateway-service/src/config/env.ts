@@ -13,6 +13,8 @@ const envSchema = z.object({
 
   VIDEO_SERVICE_URL: z.url(),
 
+  SEARCH_SERVICE_URL: z.url(),
+
   JWT_SECRET: z.uuid(),
 });
 

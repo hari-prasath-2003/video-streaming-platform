@@ -1,18 +1,46 @@
 import videoRepository from "../repository/VideoRepository.js";
-import videoLikeRepository from "../repository/VideoLikeRepository.js";
+import videoReactionRepository from "../repository/VideoReactionRepository.js";
 import { AuthError, NotFoundError, ValidationError } from "@video-streaming/common";
-import type { VideoVisibility } from "../generated/prisma/client.js";
+import type { ReactionType, VideoVisibility } from "../generated/prisma/client.js";
+
+type VideoRow = NonNullable<Awaited<ReturnType<typeof videoRepository.findById>>>;
 
 function serialize(
-  video: Awaited<ReturnType<typeof videoRepository.findById>>,
+  video: VideoRow,
+  counts: Map<string, { like: number; dislike: number }>,
+  mine: Map<string, ReactionType>,
 ) {
-  if (!video) return video;
-
-  const { _count, ...rest } = video as typeof video & {
-    _count: { likes: number };
+  const { _count, ...rest } = video as VideoRow & {
+    _count: { comments: number };
   };
 
-  return { ...rest, likeCount: _count.likes };
+  const totals = counts.get(video.id) ?? { like: 0, dislike: 0 };
+  const reaction = mine.get(video.id) ?? null;
+
+  return {
+    ...rest,
+    commentCount: _count.comments,
+    likeCount: totals.like,
+    dislikeCount: totals.dislike,
+    reaction,
+    // Retained so existing callers that only care about likes keep working.
+    liked: reaction === "LIKE",
+  };
+}
+
+/**
+ * Attach reaction totals and the caller's own reaction to a page of videos.
+ * Two batched queries regardless of page size.
+ */
+async function withReactions(videos: VideoRow[], userId: string) {
+  const ids = videos.map((video) => video.id);
+
+  const [counts, mine] = await Promise.all([
+    videoReactionRepository.countsFor(ids),
+    videoReactionRepository.findManyForUser(ids, userId),
+  ]);
+
+  return videos.map((video) => serialize(video, counts, mine));
 }
 
 function assertViewable(
@@ -50,12 +78,42 @@ class VideoService {
       visibility: data.visibility ?? "PUBLIC",
     });
 
-    return serialize(await videoRepository.findById(video.id));
+    const [created] = await withReactions(
+      [(await videoRepository.findById(video.id))!],
+      uploaderId,
+    );
+
+    return created;
   }
 
-  async getFeed(limit: number, cursor?: string) {
-    const videos = await videoRepository.findPublicFeed(limit, cursor);
-    return videos.map(serialize);
+  async getFeed(
+    userId: string,
+    limit: number,
+    cursor?: string,
+    channelId?: string,
+  ) {
+    const videos = await videoRepository.findPublicFeed(
+      limit,
+      cursor,
+      channelId,
+    );
+
+    return withReactions(videos, userId);
+  }
+
+  async searchVideos(
+    userId: string,
+    term: string,
+    limit: number,
+    cursor?: string,
+  ) {
+    const videos = await videoRepository.search(term, limit, cursor);
+
+    return {
+      query: term,
+      nextCursor: videos.length === limit ? videos[videos.length - 1]!.id : null,
+      videos: await withReactions(videos, userId),
+    };
   }
 
   async getVideoById(id: string, userId: string) {
@@ -67,9 +125,9 @@ class VideoService {
 
     assertViewable(video, userId);
 
-    const liked = await videoLikeRepository.find(id, userId);
+    const [decorated] = await withReactions([video], userId);
 
-    return { ...serialize(video), liked: liked !== null };
+    return decorated;
   }
 
   async deleteVideo(id: string, userId: string) {
@@ -96,35 +154,51 @@ class VideoService {
     await videoRepository.incrementViewCount(id);
   }
 
-  async likeVideo(id: string, userId: string) {
+  /**
+   * Like or dislike a video. Reacting the same way twice clears the reaction,
+   * which is what makes the buttons behave as toggles; reacting the other way
+   * switches sides in a single write.
+   */
+  async reactToVideo(id: string, userId: string, type: ReactionType) {
     const video = await videoRepository.findById(id);
 
     if (!video) {
       throw new NotFoundError("Video not found.");
     }
 
-    const existing = await videoLikeRepository.find(id, userId);
+    assertViewable(video, userId);
 
-    if (existing) {
-      return;
+    const existing = await videoReactionRepository.find(id, userId);
+
+    if (existing?.type === type) {
+      await videoReactionRepository.clear(id, userId);
+    } else {
+      await videoReactionRepository.set(id, userId, type);
     }
 
-    await videoLikeRepository.like(id, userId);
+    const [decorated] = await withReactions([video], userId);
+
+    return decorated;
   }
 
-  async unlikeVideo(id: string, userId: string) {
-    const existing = await videoLikeRepository.find(id, userId);
+  async clearReaction(id: string, userId: string) {
+    const video = await videoRepository.findById(id);
 
-    if (!existing) {
-      return;
+    if (!video) {
+      throw new NotFoundError("Video not found.");
     }
 
-    await videoLikeRepository.unlike(id, userId);
+    await videoReactionRepository.clear(id, userId);
+
+    const [decorated] = await withReactions([video], userId);
+
+    return decorated;
   }
 
   async getLikedVideos(userId: string) {
     const videos = await videoRepository.findLikedByUser(userId);
-    return videos.map(serialize);
+
+    return withReactions(videos, userId);
   }
 }
 

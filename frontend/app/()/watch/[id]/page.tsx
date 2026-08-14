@@ -8,15 +8,16 @@ import {
   Share2,
   Bookmark,
   Bell,
-  Send,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { CommentSection } from "@/components/comment-section";
 import UseApi from "@/hooks/UseApi";
+import UseAccount from "@/hooks/UseAccount";
 import { mediaUrl, formatViews, type Video } from "@/lib/video";
+import { initialsOf, type ChannelSummary } from "@/lib/user";
 
 const recommendations = Array.from({ length: 10 }).map((_, i) => ({
   id: i,
@@ -27,16 +28,13 @@ const recommendations = Array.from({ length: 10 }).map((_, i) => ({
   thumbnail: `https://picsum.photos/500/300?random=${i}`,
 }));
 
-const comments = Array.from({ length: 8 }).map((_, i) => ({
-  id: i,
-  user: `User ${i + 1}`,
-  text: "This was one of the best explanations I've watched recently.",
-}));
-
 export default function WatchPage() {
   const { id } = useParams<{ id: string }>();
   const { get, post, del, accessToken } = UseApi();
+  const { account } = UseAccount();
   const [video, setVideo] = useState<Video | null>(null);
+  const [channel, setChannel] = useState<ChannelSummary | null>(null);
+  const [subscribed, setSubscribed] = useState(false);
   const hasRecordedView = useRef(false);
 
   useEffect(() => {
@@ -44,24 +42,74 @@ export default function WatchPage() {
     get(`/api/video/${id}`).then((res) => setVideo(res.data));
   }, [id]);
 
+  // Video.channelId is the uploader's userId, so the channel name/avatar has
+  // to be resolved from user-service separately.
+  useEffect(() => {
+    if (!video) return;
+
+    get(`/api/user/channels/by-owner?ids=${video.channelId}`)
+      .then((res) => setChannel((res.data as ChannelSummary[])[0] ?? null))
+      .catch(() => setChannel(null));
+  }, [video?.channelId]);
+
+  useEffect(() => {
+    if (!channel) return;
+
+    get(`/api/user/channels/${channel.id}/subscribed`)
+      .then((res) => setSubscribed(Boolean(res.data.subscribed)))
+      .catch(() => setSubscribed(false));
+  }, [channel?.id]);
+
+  async function toggleSubscribe() {
+    if (!channel) return;
+
+    const wasSubscribed = subscribed;
+    setSubscribed(!wasSubscribed);
+
+    try {
+      if (wasSubscribed) {
+        await del(`/api/user/channels/${channel.id}/subscribe`);
+      } else {
+        await post(`/api/user/channels/${channel.id}/subscribe`, {});
+      }
+    } catch {
+      setSubscribed(wasSubscribed);
+    }
+  }
+
   useEffect(() => {
     if (!id || hasRecordedView.current) return;
     hasRecordedView.current = true;
     post(`/api/video/${id}/views`, {});
   }, [id]);
 
-  async function toggleLike() {
+  // Like and dislike are the same toggle from opposite ends: the server keeps
+  // one reaction per user, so it returns the reconciled counts and we take them
+  // as the source of truth rather than tracking both sides by hand.
+  async function react(type: "LIKE" | "DISLIKE") {
     if (!video) return;
-    const wasLiked = video.liked;
+
+    const previous = video;
+    const clearing = video.reaction === type;
+    const delta = (from: "LIKE" | "DISLIKE") =>
+      (video.reaction === from ? -1 : 0) + (!clearing && type === from ? 1 : 0);
+
     setVideo({
       ...video,
-      liked: !wasLiked,
-      likeCount: video.likeCount + (wasLiked ? -1 : 1),
+      reaction: clearing ? null : type,
+      likeCount: video.likeCount + delta("LIKE"),
+      dislikeCount: video.dislikeCount + delta("DISLIKE"),
     });
-    if (wasLiked) {
-      await del(`/api/video/${id}/like`);
-    } else {
-      await post(`/api/video/${id}/like`, {});
+
+    try {
+      const res = await post(
+        `/api/video/${id}/${type === "LIKE" ? "like" : "dislike"}`,
+        {},
+      );
+
+      setVideo(res.data);
+    } catch {
+      setVideo(previous);
     }
   }
 
@@ -95,15 +143,24 @@ export default function WatchPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
-                onClick={toggleLike}
-                className={video?.liked ? "text-violet-400" : undefined}
+                onClick={() => react("LIKE")}
+                className={
+                  video?.reaction === "LIKE" ? "text-violet-400" : undefined
+                }
               >
                 <ThumbsUp className="mr-2 h-4 w-4" />
                 {video?.likeCount ?? 0}
               </Button>
 
-              <Button variant="secondary">
-                <ThumbsDown className="h-4 w-4" />
+              <Button
+                variant="secondary"
+                onClick={() => react("DISLIKE")}
+                className={
+                  video?.reaction === "DISLIKE" ? "text-violet-400" : undefined
+                }
+              >
+                <ThumbsDown className="mr-2 h-4 w-4" />
+                {video?.dislikeCount ?? 0}
               </Button>
 
               <Button variant="secondary">
@@ -123,21 +180,40 @@ export default function WatchPage() {
             <div className="flex items-center justify-between">
               <div className="flex gap-4">
                 <Avatar className="h-14 w-14">
+                  {channel?.avatarUrl && (
+                    <AvatarImage
+                      src={mediaUrl(channel.avatarUrl, accessToken) ?? undefined}
+                      alt={channel.name}
+                    />
+                  )}
+
                   <AvatarFallback>
-                    {video?.channelId.slice(0, 2).toUpperCase() ?? "??"}
+                    {initialsOf(channel?.name ?? video?.channelId)}
                   </AvatarFallback>
                 </Avatar>
 
                 <div>
                   <h3 className="font-semibold">
-                    {video ? video.channelId.slice(0, 8) : ""}
+                    {channel?.name ?? (video ? "Unknown channel" : "")}
                   </h3>
+
+                  {channel && (
+                    <p className="text-sm text-zinc-400">@{channel.handle}</p>
+                  )}
                 </div>
               </div>
 
-              <Button className="bg-white text-black hover:bg-zinc-200">
+              <Button
+                disabled={!channel || channel.ownerId === account?.userId}
+                onClick={toggleSubscribe}
+                className={
+                  subscribed
+                    ? "bg-zinc-800 text-white hover:bg-zinc-700"
+                    : "bg-white text-black hover:bg-zinc-200"
+                }
+              >
                 <Bell className="mr-2 h-4 w-4" />
-                Subscribe
+                {subscribed ? "Subscribed" : "Subscribe"}
               </Button>
             </div>
 
@@ -149,66 +225,11 @@ export default function WatchPage() {
           </Card>
 
           {/* Comments */}
-          <div className="mb-6">
-            <div className="my-8 flexflex-col items-center justify-center gap-4 rounded-xl">
-              <h2 className="mb-5 text-xl font-semibold">Comments (2,348)</h2>
-
-              <Card className="border-zinc-800 bg-zinc-950/40">
-                <div className="p-4">
-                  <div className="flex gap-4">
-                    <Avatar>
-                      <AvatarFallback>HP</AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder="Add a comment..."
-                        className="
-              min-h-[90px]
-              resize-none
-              border-zinc-800
-              bg-zinc-900/50
-              focus-visible:ring-violet-500
-            "
-                      />
-
-                      <div className="mt-3 flex justify-end gap-2">
-                        <Button variant="ghost">Cancel</Button>
-                        <Button className="bg-white text-black hover:bg-zinc-200">
-                          <Send className="mr-2 h-4 w-4" />
-                          Comment
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <Card
-                  key={comment.id}
-                  className="border-zinc-800 bg-zinc-950/30 p-4"
-                >
-                  <div className="flex gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {comment.user.slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div>
-                      <p className="font-medium">{comment.user}</p>
-
-                      <p className="mt-1 text-sm text-zinc-400">
-                        {comment.text}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <CommentSection
+            videoId={id}
+            currentUserId={account?.userId ?? null}
+            videoOwnerId={video?.channelId ?? null}
+          />
         </div>
 
         {/* Recommendations */}

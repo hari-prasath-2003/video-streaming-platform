@@ -1,18 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Bell, Menu, Search, Upload } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import { UploadDialog } from "@/components/upload-dialog";
 import { useRouter } from "next/navigation";
+import UseAccount from "@/hooks/UseAccount";
+import UseApi from "@/hooks/UseApi";
+import { initialsOf } from "@/lib/user";
+import { mediaUrl } from "@/lib/video";
 
 export function Navbar() {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const router = useRouter();
+  const { account } = UseAccount();
+  const { accessToken } = UseApi();
+
+  const avatarSrc = mediaUrl(account?.profile?.avatarUrl ?? null, accessToken);
+
+  function submitSearch(event: FormEvent) {
+    event.preventDefault();
+
+    if (!query.trim()) return;
+
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+  }
 
   return (
     <>
@@ -28,12 +45,17 @@ export function Navbar() {
           </div>
 
           {/* Search */}
-          <div className="hidden w-full max-w-2xl px-8 md:flex">
+          <form
+            onSubmit={submitSearch}
+            className="hidden w-full max-w-2xl px-8 md:flex"
+          >
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
 
               <Input
-                placeholder="Search videos..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search videos and channels..."
                 className="
                   h-12
                   rounded-full
@@ -48,7 +70,7 @@ export function Navbar() {
                 "
               />
             </div>
-          </div>
+          </form>
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
@@ -72,11 +94,13 @@ export function Navbar() {
             />
 
             <Avatar
-              className="h-10 w-10"
+              className="h-10 w-10 cursor-pointer"
               onClick={() => router.push("/profile/edit")}
             >
+              {avatarSrc && <AvatarImage src={avatarSrc} alt="Your profile" />}
+
               <AvatarFallback className="bg-zinc-800 text-white">
-                HP
+                {initialsOf(account?.profile?.displayName ?? account?.email)}
               </AvatarFallback>
             </Avatar>
           </div>

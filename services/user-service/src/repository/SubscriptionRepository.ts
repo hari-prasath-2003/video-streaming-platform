@@ -23,6 +23,18 @@ class SubscriptionRepository {
     });
   }
 
+  async deleteByChannelId(channelId: string) {
+    return this.prismaClient.subscription.deleteMany({
+      where: { channelId },
+    });
+  }
+
+  async deleteBySubscriberId(subscriberId: string) {
+    return this.prismaClient.subscription.deleteMany({
+      where: { subscriberId },
+    });
+  }
+
   async findSubscription(subscriberId: string, channelId: string) {
     return this.prismaClient.subscription.findUnique({
       where: {

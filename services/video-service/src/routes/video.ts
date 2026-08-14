@@ -1,7 +1,8 @@
-import express, { Router } from "express";
+import express, { type RequestHandler, Router } from "express";
 import path from "node:path";
 import { ValidationError } from "@video-streaming/common";
 import videoService from "../service/VideoService.js";
+import commentService from "../service/CommentService.js";
 import { upload } from "../utils/Storage.js";
 
 const router: Router = express.Router();
@@ -57,17 +58,51 @@ router.post(
 );
 
 /**
- * Public feed
- * GET /api/video?limit=&cursor=
+ * Public feed, optionally scoped to one channel
+ * GET /api/video?limit=&cursor=&channelId=
  */
 router.get("/", async (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 24, 50);
   const cursor =
     typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+  const channelId =
+    typeof req.query.channelId === "string" ? req.query.channelId : undefined;
 
-  const videos = await videoService.getFeed(limit, cursor);
+  const videos = await videoService.getFeed(
+    req.user.uid,
+    limit,
+    cursor,
+    channelId,
+  );
 
   res.json(videos);
+});
+
+/**
+ * Search public videos by title/description
+ * GET /api/video/search?q=&limit=&cursor=
+ *
+ * Declared before "/:id" so the literal path wins over the id param.
+ */
+router.get("/search", async (req, res) => {
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+  if (!q) {
+    throw new ValidationError("A search term is required.");
+  }
+
+  const limit = Math.min(Number(req.query.limit) || 24, 50);
+  const cursor =
+    typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+
+  const results = await videoService.searchVideos(
+    req.user.uid,
+    q,
+    limit,
+    cursor,
+  );
+
+  res.json(results);
 });
 
 /**
@@ -111,23 +146,82 @@ router.post("/:id/views", async (req, res) => {
 });
 
 /**
- * Like a video
+ * Like a video. Posting again while already liked clears the reaction.
  * POST /api/video/:id/like
  */
 router.post("/:id/like", async (req, res) => {
-  await videoService.likeVideo(req.params.id, req.user.uid);
+  const video = await videoService.reactToVideo(
+    req.params.id,
+    req.user.uid,
+    "LIKE",
+  );
 
-  res.sendStatus(204);
+  res.json(video);
 });
 
 /**
- * Unlike a video
- * DELETE /api/video/:id/like
+ * Dislike a video. Posting again while already disliked clears the reaction.
+ * POST /api/video/:id/dislike
  */
-router.delete("/:id/like", async (req, res) => {
-  await videoService.unlikeVideo(req.params.id, req.user.uid);
+router.post("/:id/dislike", async (req, res) => {
+  const video = await videoService.reactToVideo(
+    req.params.id,
+    req.user.uid,
+    "DISLIKE",
+  );
 
-  res.sendStatus(204);
+  res.json(video);
+});
+
+/**
+ * Clear whichever reaction is set.
+ * DELETE /api/video/:id/like
+ * DELETE /api/video/:id/reaction
+ */
+const clearReaction: RequestHandler<{ id: string }> = async (req, res) => {
+  const video = await videoService.clearReaction(req.params.id, req.user.uid);
+
+  res.json(video);
+};
+
+router.delete("/:id/like", clearReaction);
+router.delete("/:id/reaction", clearReaction);
+
+/**
+ * Top-level comments on a video
+ * GET /api/video/:id/comments?limit=&cursor=
+ */
+router.get("/:id/comments", async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 20, 50);
+  const cursor =
+    typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+
+  const comments = await commentService.getComments(
+    req.params.id,
+    req.user.uid,
+    limit,
+    cursor,
+  );
+
+  res.json(comments);
+});
+
+/**
+ * Post a comment (or a reply, via body.parentId)
+ * POST /api/video/:id/comments
+ */
+router.post("/:id/comments", async (req, res) => {
+  const comment = await commentService.addComment(
+    req.params.id,
+    req.user.uid,
+    {
+      text: req.body?.text,
+      parentId:
+        typeof req.body?.parentId === "string" ? req.body.parentId : undefined,
+    },
+  );
+
+  res.status(201).json(comment);
 });
 
 export default router;

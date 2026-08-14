@@ -34,6 +34,29 @@ class SessionRepository {
       },
     });
   }
+
+  updatePassword(id: string, passwordHash: string): Promise<User> {
+    return this.prismaClient.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
+
+  /**
+   * Changing the email invalidates any prior verification.
+   */
+  updateEmail(id: string, email: string): Promise<User> {
+    return this.prismaClient.user.update({
+      where: { id },
+      data: { email, emailVerified: false },
+    });
+  }
+
+  deleteUser(id: string): Promise<User> {
+    return this.prismaClient.user.delete({
+      where: { id },
+    });
+  }
 }
 
 const sessionRepository = new SessionRepository();

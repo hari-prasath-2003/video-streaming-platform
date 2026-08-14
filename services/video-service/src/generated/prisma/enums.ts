@@ -16,3 +16,11 @@ export const VideoVisibility = {
 } as const
 
 export type VideoVisibility = (typeof VideoVisibility)[keyof typeof VideoVisibility]
+
+
+export const ReactionType = {
+  LIKE: 'LIKE',
+  DISLIKE: 'DISLIKE'
+} as const
+
+export type ReactionType = (typeof ReactionType)[keyof typeof ReactionType]

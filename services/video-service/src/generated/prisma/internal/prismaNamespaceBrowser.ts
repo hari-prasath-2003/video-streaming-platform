@@ -52,7 +52,8 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Video: 'Video',
-  VideoLike: 'VideoLike'
+  Comment: 'Comment',
+  VideoReaction: 'VideoReaction'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -88,13 +89,28 @@ export const VideoScalarFieldEnum = {
 export type VideoScalarFieldEnum = (typeof VideoScalarFieldEnum)[keyof typeof VideoScalarFieldEnum]
 
 
-export const VideoLikeScalarFieldEnum = {
+export const CommentScalarFieldEnum = {
+  id: 'id',
   videoId: 'videoId',
-  userId: 'userId',
-  likedAt: 'likedAt'
+  authorId: 'authorId',
+  parentId: 'parentId',
+  text: 'text',
+  edited: 'edited',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
-export type VideoLikeScalarFieldEnum = (typeof VideoLikeScalarFieldEnum)[keyof typeof VideoLikeScalarFieldEnum]
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const VideoReactionScalarFieldEnum = {
+  videoId: 'videoId',
+  userId: 'userId',
+  type: 'type',
+  reactedAt: 'reactedAt'
+} as const
+
+export type VideoReactionScalarFieldEnum = (typeof VideoReactionScalarFieldEnum)[keyof typeof VideoReactionScalarFieldEnum]
 
 
 export const SortOrder = {

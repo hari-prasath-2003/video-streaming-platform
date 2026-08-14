@@ -28,7 +28,7 @@ function UseApi() {
       async (error) => {
         const originalRequest = error.config;
 
-        if (error.response.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
             const newToken = await refreshAccessToken();
@@ -64,11 +64,15 @@ function UseApi() {
     return api.post(url, data, config);
   }
 
+  function patch(url: string, data: object, config?: object) {
+    return api.patch(url, data, config);
+  }
+
   function del(url: string, config?: object) {
     return api.delete(url, config);
   }
 
-  return { get, post, del, accessToken };
+  return { get, post, patch, del, accessToken };
 }
 
 export default UseApi;

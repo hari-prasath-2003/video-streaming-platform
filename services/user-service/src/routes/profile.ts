@@ -1,10 +1,18 @@
 import express, { Router } from "express";
 import profileService from "../service/ProfileService.js";
+import {
+  createProfileSchema,
+  parse,
+  updateProfileSchema,
+} from "../validation/index.js";
 
 const router: Router = express.Router();
 
 router.post("/", async (req, res) => {
-  const profile = await profileService.createProfile(req.user.uid, req.body);
+  const profile = await profileService.createProfile(
+    req.user.uid,
+    parse(createProfileSchema, req.body),
+  );
 
   res.status(201).json(profile);
 });
@@ -24,7 +32,10 @@ router.get("/:username", async (req, res) => {
 });
 
 router.patch("/me", async (req, res) => {
-  const profile = await profileService.updateProfile(req.user.uid, req.body);
+  const profile = await profileService.updateProfile(
+    req.user.uid,
+    parse(updateProfileSchema, req.body),
+  );
 
   res.json(profile);
 });

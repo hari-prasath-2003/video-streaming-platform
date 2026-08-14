@@ -1,18 +1,23 @@
 import { prisma } from "../config/db.js";
+import type {
+  CreateProfileInput,
+  UpdateProfileInput,
+} from "../validation/index.js";
+import { definedFields } from "../utils/PatchData.js";
 
 class ProfileRepository {
   private prismaClient = prisma;
 
-  async create(data: {
-    userId: string;
-    username: string;
-    displayName: string;
-    bio?: string;
-    avatarUrl?: string;
-    bannerUrl?: string;
-  }) {
+  async create(data: CreateProfileInput & { userId: string }) {
     return this.prismaClient.profile.create({
-      data,
+      data: {
+        userId: data.userId,
+        username: data.username,
+        displayName: data.displayName,
+        bio: data.bio ?? null,
+        avatarUrl: data.avatarUrl ?? null,
+        bannerUrl: data.bannerUrl ?? null,
+      },
     });
   }
 
@@ -34,19 +39,26 @@ class ProfileRepository {
     });
   }
 
-  async update(
-    userId: string,
-    data: {
-      username?: string;
-      displayName?: string;
-      bio?: string | null;
-      avatarUrl?: string | null;
-      bannerUrl?: string | null;
-    },
-  ) {
+  /**
+   * Case-insensitive match on username or display name.
+   */
+  async search(term: string, limit: number) {
+    return this.prismaClient.profile.findMany({
+      where: {
+        OR: [
+          { username: { contains: term, mode: "insensitive" } },
+          { displayName: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  }
+
+  async update(userId: string, data: UpdateProfileInput) {
     return this.prismaClient.profile.update({
       where: { userId },
-      data,
+      data: definedFields(data),
     });
   }
 
