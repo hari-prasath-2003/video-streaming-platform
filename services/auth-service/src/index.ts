@@ -2,7 +2,6 @@ import "dotenv/config";
 import express, { NextFunction, Request, Response } from "express";
 import logger from "@video-streaming/logger";
 import authRoutes from "./routes/index.js";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import { CustomError } from "@video-streaming/common";
 

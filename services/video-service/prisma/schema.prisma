@@ -5,7 +5,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -21,6 +21,8 @@ enum VideoVisibility {
 model Video {
   id              String @id @default(uuid()) @db.Uuid
 
+  // MVP simplification: no cross-service FK to user-service's Channel table,
+  // this is just the uploader's userId from the JWT.
   channelId       String @db.Uuid @map("channel_id")
 
   title           String @db.VarChar(255)
@@ -31,7 +33,9 @@ model Video {
 
   videoUrl        String @map("video_url")
 
-  durationSeconds Int @map("duration_seconds")
+  durationSeconds Int @default(0) @map("duration_seconds")
+
+  viewCount       Int @default(0) @map("view_count")
 
   visibility      VideoVisibility @default(PUBLIC)
 
@@ -41,10 +45,6 @@ model Video {
 
   likes           VideoLike[]
 
-  comments        Comment[]
-
-  views           VideoView[]
-
   @@index([channelId])
 
   @@index([uploadedAt])
@@ -52,4 +52,20 @@ model Video {
   @@index([visibility])
 
   @@map("videos")
+}
+
+model VideoLike {
+  videoId String   @db.Uuid @map("video_id")
+
+  userId  String   @db.Uuid @map("user_id")
+
+  likedAt DateTime @default(now()) @map("liked_at")
+
+  video   Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([videoId, userId])
+
+  @@index([userId])
+
+  @@map("video_likes")
 }

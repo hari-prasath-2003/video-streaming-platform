@@ -6,9 +6,6 @@ import useUserStore from "@/store/User";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_GATEWAY_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 function UseApi() {
@@ -67,7 +64,11 @@ function UseApi() {
     return api.post(url, data, config);
   }
 
-  return { get, post };
+  function del(url: string, config?: object) {
+    return api.delete(url, config);
+  }
+
+  return { get, post, del, accessToken };
 }
 
 export default UseApi;

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -13,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import UseApi from "@/hooks/UseApi";
+import { mediaUrl, formatViews, type Video } from "@/lib/video";
 
 const recommendations = Array.from({ length: 10 }).map((_, i) => ({
   id: i,
@@ -30,6 +34,37 @@ const comments = Array.from({ length: 8 }).map((_, i) => ({
 }));
 
 export default function WatchPage() {
+  const { id } = useParams<{ id: string }>();
+  const { get, post, del, accessToken } = UseApi();
+  const [video, setVideo] = useState<Video | null>(null);
+  const hasRecordedView = useRef(false);
+
+  useEffect(() => {
+    if (!id) return;
+    get(`/api/video/${id}`).then((res) => setVideo(res.data));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || hasRecordedView.current) return;
+    hasRecordedView.current = true;
+    post(`/api/video/${id}/views`, {});
+  }, [id]);
+
+  async function toggleLike() {
+    if (!video) return;
+    const wasLiked = video.liked;
+    setVideo({
+      ...video,
+      liked: !wasLiked,
+      likeCount: video.likeCount + (wasLiked ? -1 : 1),
+    });
+    if (wasLiked) {
+      await del(`/api/video/${id}/like`);
+    } else {
+      await post(`/api/video/${id}/like`, {});
+    }
+  }
+
   return (
     <div className="w-full px-6 py-6">
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
@@ -40,25 +75,31 @@ export default function WatchPage() {
             <video
               controls
               className="aspect-video w-full"
-              poster="https://picsum.photos/1600/900"
+              poster={mediaUrl(video?.thumbnailUrl ?? null, accessToken) || undefined}
+              src={mediaUrl(video?.videoUrl ?? null, accessToken) || undefined}
             />
           </div>
 
           {/* Title */}
           <h1 className="mt-5 text-2xl font-bold">
-            Building a Distributed Streaming Platform from Scratch
+            {video?.title ?? "Loading..."}
           </h1>
 
           {/* Stats */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <div className="text-sm text-zinc-400">
-              1.2M views • Jun 17, 2026
+              {video ? formatViews(video.viewCount) : ""}
+              {video ? ` • ${new Date(video.uploadedAt).toLocaleDateString()}` : ""}
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary">
+              <Button
+                variant="secondary"
+                onClick={toggleLike}
+                className={video?.liked ? "text-violet-400" : undefined}
+              >
                 <ThumbsUp className="mr-2 h-4 w-4" />
-                12K
+                {video?.likeCount ?? 0}
               </Button>
 
               <Button variant="secondary">
@@ -82,13 +123,15 @@ export default function WatchPage() {
             <div className="flex items-center justify-between">
               <div className="flex gap-4">
                 <Avatar className="h-14 w-14">
-                  <AvatarFallback>CV</AvatarFallback>
+                  <AvatarFallback>
+                    {video?.channelId.slice(0, 2).toUpperCase() ?? "??"}
+                  </AvatarFallback>
                 </Avatar>
 
                 <div>
-                  <h3 className="font-semibold">CodeVerse</h3>
-
-                  <p className="text-sm text-zinc-500">2.1M subscribers</p>
+                  <h3 className="font-semibold">
+                    {video ? video.channelId.slice(0, 8) : ""}
+                  </h3>
                 </div>
               </div>
 
@@ -98,13 +141,11 @@ export default function WatchPage() {
               </Button>
             </div>
 
-            <div className="mt-5 rounded-xl bg-zinc-900/50 p-4">
-              <p className="text-sm text-zinc-300">
-                Learn how large-scale video streaming systems are built using
-                microservices, queues, object storage, caching and distributed
-                databases.
-              </p>
-            </div>
+            {video?.description && (
+              <div className="mt-5 rounded-xl bg-zinc-900/50 p-4">
+                <p className="text-sm text-zinc-300">{video.description}</p>
+              </div>
+            )}
           </Card>
 
           {/* Comments */}

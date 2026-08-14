@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -12,6 +13,7 @@ import { MetadataStep } from "@/components/upload-steps/metadata-step";
 import { AssetsStep } from "@/components/upload-steps/assets-step";
 import { VisibilityStep } from "@/components/upload-steps/visibility-step";
 import { PublishStep } from "@/components/upload-steps/publish-step";
+import UseApi from "@/hooks/UseApi";
 
 interface UploadDialogProps {
   open: boolean;
@@ -21,6 +23,9 @@ interface UploadDialogProps {
 const steps = ["Metadata", "Assets", "Access Control", "Publish"];
 
 export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
+  const router = useRouter();
+  const { post } = UseApi();
+
   const [step, setStep] = useState(0);
 
   const [title, setTitle] = useState("");
@@ -36,15 +41,27 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
 
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
+  const [durationSeconds, setDurationSeconds] = useState(0);
+
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const [publishError, setPublishError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!videoFile) {
       setVideoPreview(null);
+      setDurationSeconds(0);
       return;
     }
 
     const url = URL.createObjectURL(videoFile);
 
     setVideoPreview(url);
+
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => setDurationSeconds(probe.duration || 0);
+    probe.src = url;
 
     return () => {
       URL.revokeObjectURL(url);
@@ -80,6 +97,35 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
 
   const closeDialog = () => {
     onOpenChange(false);
+  };
+
+  const publish = async () => {
+    if (!videoFile) {
+      setPublishError("Select a video file first.");
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("visibility", visibility);
+      formData.append("durationSeconds", String(Math.round(durationSeconds)));
+      formData.append("video", videoFile);
+      if (thumbnailFile) formData.append("thumbnail", thumbnailFile);
+
+      const response = await post("/api/video", formData as unknown as object);
+
+      closeDialog();
+      router.push(`/watch/${response.data.id}`);
+    } catch (error) {
+      setPublishError("Upload failed. Please try again.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -141,12 +187,19 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
               )}
 
               {step === 3 && (
-                <PublishStep
-                  title={title}
-                  visibility={visibility}
-                  videoFile={videoFile}
-                  thumbnailFile={thumbnailFile}
-                />
+                <>
+                  <PublishStep
+                    title={title}
+                    visibility={visibility}
+                    videoFile={videoFile}
+                    thumbnailFile={thumbnailFile}
+                  />
+                  {publishError && (
+                    <p className="mx-auto max-w-3xl px-8 text-center text-sm text-red-400">
+                      {publishError}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -185,12 +238,14 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
                   </Button>
                 ) : (
                   <Button
+                    onClick={publish}
+                    disabled={isPublishing}
                     className="
                       bg-violet-600
                       hover:bg-violet-500
                     "
                   >
-                    Publish Video
+                    {isPublishing ? "Publishing..." : "Publish Video"}
                   </Button>
                 )}
               </div>

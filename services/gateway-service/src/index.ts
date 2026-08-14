@@ -25,10 +25,14 @@ app.use(
 
 app.use(authenticate);
 
-const createServiceProxy = (target: string) => {
+const createServiceProxy = (
+  target: string,
+  pathRewrite?: Record<string, string>,
+) => {
   return createProxyMiddleware<Request, Response>({
     target,
     changeOrigin: true,
+    ...(pathRewrite ? { pathRewrite } : {}),
 
     on: {
       proxyReq(proxyReq, req) {
@@ -43,7 +47,10 @@ const createServiceProxy = (target: string) => {
 };
 
 app.use("/api/user", createServiceProxy(env.USER_SERVICE_URL));
-app.use("/api/video", createServiceProxy(env.VIDEO_SERVICE_URL));
+app.use(
+  "/api/video",
+  createServiceProxy(env.VIDEO_SERVICE_URL, { "^/api/video": "" }),
+);
 
 app.use(
   (error: CustomError, req: Request, res: Response, next: NextFunction) => {
